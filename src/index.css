@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+@theme {
+  --color-smooth-orange: #f43f5e;
+  /* Rose-500 (Primary) */
+  --color-smooth-green: #0ea5e9;
+  /* Sky-500 (Secondary) */
+  --color-smooth-purple: #8b5cf6;
+  /* Violet-500 (Accent) */
+}
+
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
+body {
+  @apply bg-gradient-to-r from-sky-200 to-red-100 min-h-screen text-slate-800;
+  /* Lock background to viewport to prevent scroll cutoff issues with gradient */
+  background-attachment: fixed;
+}
