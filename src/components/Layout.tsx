@@ -26,9 +26,7 @@ export const Layout: React.FC = () => {
             {/* Glass Header (Sticky) */}
             <header className="sticky top-0 z-40 px-6 py-4 flex justify-between items-center bg-white/60 backdrop-blur-xl border-b border-white/40 shadow-sm">
                 <div onClick={() => navigate('/')} className="flex items-center gap-2 cursor-pointer">
-                    <div className="bg-gradient-to-br from-rose-500 to-orange-400 text-white p-1.5 rounded-lg shadow-lg shadow-rose-500/30">
-                        <Citrus size={24} strokeWidth={2.5} />
-                    </div>
+                    <img src="/logo-full.png" alt="SmoothBux Logo" className="h-10 w-auto object-contain drop-shadow-sm" />
                     <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
                         {getPageTitle()}
                     </h1>
