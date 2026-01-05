@@ -27,7 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const [user, setUser] = React.useState<User | null>(null);
-    const [token, setToken] = React.useState<string | null>(localStorage.getItem('token'));
+    const [, setToken] = React.useState<string | null>(localStorage.getItem('token'));
     const [loading, setLoading] = React.useState<boolean>(true);
 
     // Initial check
