@@ -1,11 +1,11 @@
 import React from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { ShoppingBag, Citrus, User, LayoutDashboard, Menu as MenuIcon } from 'lucide-react';
+import { ShoppingBag, Citrus, User, LayoutDashboard, Menu as MenuIcon, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 
 export const Layout: React.FC = () => {
-    const { role } = useAuth();
+    const { role, logout } = useAuth();
     const { cartItems } = useCart();
     const navigate = useNavigate();
     const location = useLocation();
@@ -56,6 +56,17 @@ export const Layout: React.FC = () => {
                             {role === 'admin' ? 'MGR' : 'YOU'}
                         </div>
                     </div>
+
+                    {/* Logout Button */}
+                    {role && (
+                        <button
+                            onClick={logout}
+                            className="p-2 bg-white/50 rounded-full hover:bg-rose-50 text-slate-500 hover:text-rose-500 transition-colors"
+                            title="Log Out"
+                        >
+                            <LogOut size={20} />
+                        </button>
+                    )}
                 </div>
             </header>
 

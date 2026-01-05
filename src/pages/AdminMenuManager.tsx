@@ -18,8 +18,18 @@ export const AdminMenuManager: React.FC = () => {
     // --- MENU STATE ---
     const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
     const [isMenuModalOpen, setIsMenuModalOpen] = useState(false);
-    const [newItem, setNewItem] = useState({
-        name: '', description: '', image_url: '', ingredients: '',
+    const [newItem, setNewItem] = useState<{
+        name: string;
+        description: string;
+        image_url: string;
+        ingredients: string;
+        category: 'smoothie' | 'food';
+    }>({
+        name: '',
+        description: '',
+        image_url: '',
+        ingredients: '',
+        category: 'smoothie'
     });
 
     // Image Cropper State
@@ -138,9 +148,10 @@ export const AdminMenuManager: React.FC = () => {
                 description: newItem.description,
                 image_url: imageToUse,
                 ingredients: ingredientsArray,
-                is_available: true
+                is_available: true,
+                category: newItem.category
             });
-            setNewItem({ name: '', description: '', image_url: '', ingredients: '' });
+            setNewItem({ name: '', description: '', image_url: '', ingredients: '', category: 'smoothie' });
             setIsMenuModalOpen(false);
             fetchData();
         } catch (error: any) {
@@ -201,7 +212,12 @@ export const AdminMenuManager: React.FC = () => {
                             <div key={item.id} className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex gap-4 items-center">
                                 <img src={item.image_url} alt={item.name} className="w-16 h-16 rounded-lg object-cover bg-gray-100" />
                                 <div className="flex-1 min-w-0">
-                                    <h3 className="font-bold text-gray-800 truncate">{item.name}</h3>
+                                    <div className="flex items-center gap-2">
+                                        <h3 className="font-bold text-gray-800 truncate">{item.name}</h3>
+                                        <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold uppercase ${item.category === 'food' ? 'bg-orange-100 text-orange-600' : 'bg-blue-50 text-blue-500'}`}>
+                                            {item.category || 'smoothie'}
+                                        </span>
+                                    </div>
                                     <p className="text-xs text-gray-500 truncate">{item.ingredients.join(', ')}</p>
                                     <div className="mt-1 flex items-center gap-2">
                                         <span className={`w-2 h-2 rounded-full ${item.is_available ? 'bg-green-500' : 'bg-red-500'}`} />
@@ -310,13 +326,23 @@ export const AdminMenuManager: React.FC = () => {
                                     )}
                                 </div>
 
-                                <input
-                                    className="p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-smooth-orange outline-none"
-                                    placeholder="Name (e.g. Berry Blast)"
-                                    value={newItem.name}
-                                    onChange={e => setNewItem({ ...newItem, name: e.target.value })}
-                                    required
-                                />
+                                <div className="flex gap-2">
+                                    <select
+                                        className="p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-smooth-orange outline-none bg-white"
+                                        value={newItem.category}
+                                        onChange={e => setNewItem({ ...newItem, category: e.target.value as 'smoothie' | 'food' })}
+                                    >
+                                        <option value="smoothie">Smoothie</option>
+                                        <option value="food">Food</option>
+                                    </select>
+                                    <input
+                                        className="flex-1 p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-smooth-orange outline-none"
+                                        placeholder="Name (e.g. Berry Blast)"
+                                        value={newItem.name}
+                                        onChange={e => setNewItem({ ...newItem, name: e.target.value })}
+                                        required
+                                    />
+                                </div>
                                 <textarea
                                     className="p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-smooth-orange outline-none resize-none"
                                     placeholder="Description"

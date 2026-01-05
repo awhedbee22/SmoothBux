@@ -1,5 +1,4 @@
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
-import { ClerkProvider, SignedIn, SignedOut, RedirectToSignIn } from '@clerk/clerk-react';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { CustomerMenu } from './pages/CustomerMenu';
 import { CustomerCart } from './pages/CustomerCart';
@@ -8,89 +7,59 @@ import { AdminDashboard } from './pages/AdminDashboard';
 import { AdminMenuManager } from './pages/AdminMenuManager';
 import { OrderStatus } from './pages/OrderStatus';
 import { CartProvider } from './context/CartContext';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 
-const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
-if (!PUBLISHABLE_KEY) {
-  throw new Error("Missing Publishable Key");
-}
+const ProtectedRoute = ({ role }: { role?: 'admin' | 'customer' }) => {
+  const { isAuthenticated, user, loading } = useAuth() as any; // Type assertion for now to bypass strict check if interface update missed
 
-function ClerkApp() {
-  const navigate = useNavigate();
+  if (!isAuthenticated && !loading) { // Wait for loading if possible, but for now simple check
+    return <Navigate to="/" replace />;
+  }
 
+  if (role && user?.role !== role && user?.role !== 'admin') {
+    // Admin can access everything, specific role restricted
+    // Actually, let's keep it simple: matching role required, or admin can behave as customer?
+    // Requirement: "accounts for family members and for the manager"
+    if (role === 'admin' && user?.role !== 'admin') {
+      return <Navigate to="/menu" replace />;
+    }
+  }
+
+  return <Outlet />;
+};
+
+function AppRoutes() {
   return (
-    <ClerkProvider
-      publishableKey={PUBLISHABLE_KEY}
-      routerPush={(to) => navigate(to)}
-      routerReplace={(to) => navigate(to, { replace: true })}
-    >
-      <AuthProvider>
-        <CartProvider>
-          <Routes>
-            <Route path="/" element={<Layout />}>
-              <Route index element={<LoginScreen />} />
+    <Routes>
+      <Route path="/" element={<Layout />}>
+        <Route index element={<LoginScreen />} />
 
-              {/* Customer Routes */}
-              <Route
-                path="menu"
-                element={
-                  <>
-                    <SignedIn><CustomerMenu /></SignedIn>
-                    <SignedOut><RedirectToSignIn /></SignedOut>
-                  </>
-                }
-              />
-              <Route
-                path="cart"
-                element={
-                  <>
-                    <SignedIn><CustomerCart /></SignedIn>
-                    <SignedOut><RedirectToSignIn /></SignedOut>
-                  </>
-                }
-              />
-              <Route
-                path="orders"
-                element={
-                  <>
-                    <SignedIn><OrderStatus /></SignedIn>
-                    <SignedOut><RedirectToSignIn /></SignedOut>
-                  </>
-                }
-              />
+        {/* Customer Routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="menu" element={<CustomerMenu />} />
+          <Route path="cart" element={<CustomerCart />} />
+          <Route path="orders" element={<OrderStatus />} />
+        </Route>
 
-              {/* Admin Routes */}
-              <Route
-                path="admin"
-                element={
-                  <>
-                    <SignedIn><AdminDashboard /></SignedIn>
-                    <SignedOut><RedirectToSignIn /></SignedOut>
-                  </>
-                }
-              />
-              <Route
-                path="admin/menu"
-                element={
-                  <>
-                    <SignedIn><AdminMenuManager /></SignedIn>
-                    <SignedOut><RedirectToSignIn /></SignedOut>
-                  </>
-                }
-              />
-            </Route>
-          </Routes>
-        </CartProvider>
-      </AuthProvider>
-    </ClerkProvider>
+        {/* Admin Routes */}
+        <Route element={<ProtectedRoute role="admin" />}>
+          <Route path="admin" element={<AdminDashboard />} />
+          <Route path="admin/menu" element={<AdminMenuManager />} />
+        </Route>
+      </Route>
+    </Routes>
   );
 }
 
 function App() {
   return (
     <BrowserRouter>
-      <ClerkApp />
+      <AuthProvider>
+        <CartProvider>
+          <AppRoutes />
+        </CartProvider>
+      </AuthProvider>
     </BrowserRouter>
   );
 }

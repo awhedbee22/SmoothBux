@@ -60,8 +60,10 @@ export const CustomerMenu: React.FC = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-                {menuItems.map((item) => (
+            {/* Smoothies Section */}
+            <h3 className="text-lg font-bold text-slate-700 mb-3 px-1">Smoothies</h3>
+            <div className="grid grid-cols-2 gap-4 mb-8">
+                {menuItems.filter(i => !i.category || i.category === 'smoothie').map((item) => (
                     <div
                         key={item.id}
                         onClick={() => handleItemClick(item)}
@@ -100,6 +102,52 @@ export const CustomerMenu: React.FC = () => {
                     </div>
                 ))}
             </div>
+
+            {/* Food Section */}
+            {menuItems.some(i => i.category === 'food') && (
+                <>
+                    <h3 className="text-lg font-bold text-slate-700 mb-3 px-1 mt-6">Food & Snacks</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                        {menuItems.filter(i => i.category === 'food').map((item) => (
+                            <div
+                                key={item.id}
+                                onClick={() => handleItemClick(item)}
+                                className="group bg-white/60 backdrop-blur-md rounded-3xl p-3 shadow-lg hover:shadow-xl hover:shadow-orange-500/10 hover:scale-[1.02] transition-all duration-300 border border-white/60 cursor-pointer flex flex-col h-full"
+                            >
+                                {/* Image Container */}
+                                <div className="aspect-[4/3] w-full bg-white rounded-2xl relative overflow-hidden mb-3 shadow-sm group-hover:shadow-md transition-shadow">
+                                    <img
+                                        src={item.image_url}
+                                        alt={item.name}
+                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                        onError={(e) => {
+                                            (e.target as HTMLImageElement).src = 'https://placehold.co/600x400/orange/white?text=Food';
+                                        }}
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-between p-2">
+                                        <span className="text-white text-xs font-bold bg-orange-500 px-2 py-0.5 rounded-full shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                                            Add
+                                        </span>
+                                    </div>
+                                    <button className="absolute top-2 right-2 bg-white/90 p-1.5 rounded-full shadow-sm text-orange-500 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Plus size={16} strokeWidth={3} />
+                                    </button>
+                                </div>
+
+                                {/* Content */}
+                                <div className="flex-1 flex flex-col">
+                                    <h3 className="font-bold text-slate-800 leading-tight mb-1 text-sm md:text-base group-hover:text-orange-600 transition-colors">
+                                        {item.name}
+                                    </h3>
+                                    <p className="text-[10px] md:text-xs text-slate-500 line-clamp-2 leading-relaxed font-medium">
+                                        {item.description}
+                                    </p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </>
+            )}
 
             {menuItems.length === 0 && (
                 <div className="text-center bg-white/40 backdrop-blur-sm p-8 rounded-3xl border border-white/50 mt-10">

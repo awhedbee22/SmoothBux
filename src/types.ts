@@ -5,6 +5,7 @@ export interface MenuItem {
     image_url: string;
     ingredients: string[];
     is_available: boolean;
+    category?: 'smoothie' | 'food';
 }
 
 export interface OrderItem {

@@ -3,11 +3,14 @@ import cors from 'cors';
 import { createClient } from '@libsql/client';
 import dotenv from 'dotenv';
 import path from 'path';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 const app = express();
 const port = 3000;
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key-change-in-prod';
 
 app.use(cors());
 app.use(express.json());
@@ -22,6 +25,110 @@ const client = createClient({
 });
 
 console.log(`Connecting to Turso at ${url ? 'configured URL' : 'local file (fallback)'}...`);
+
+// --- Auth Setup & Seeding ---
+async function setupAuth() {
+    try {
+        // Create menu_items table
+        await client.execute(`
+            CREATE TABLE IF NOT EXISTS menu_items (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                description TEXT,
+                image_url TEXT,
+                ingredients TEXT,
+                is_available BOOLEAN DEFAULT 1,
+                category TEXT DEFAULT 'smoothie',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        // Migration: Add category column if missing (for existing dbs)
+        try {
+            await client.execute("ALTER TABLE menu_items ADD COLUMN category TEXT DEFAULT 'smoothie'");
+        } catch (e) {
+            // Column likely exists, ignore
+        }
+
+        // Check if users exist
+        const result = await client.execute('SELECT COUNT(*) as count FROM users');
+        const count = result.rows[0].count as number;
+
+        if (count === 0) {
+            console.log('Seeding default users...');
+            const managerPass = await bcrypt.hash('admin123', 10);
+            const familyPass = await bcrypt.hash('family123', 10);
+
+            await client.batch([
+                {
+                    sql: 'INSERT INTO users (id, username, password_hash, role) VALUES (?, ?, ?, ?)',
+                    args: [crypto.randomUUID(), 'manager', managerPass, 'admin']
+                },
+                {
+                    sql: 'INSERT INTO users (id, username, password_hash, role) VALUES (?, ?, ?, ?)',
+                    args: [crypto.randomUUID(), 'family', familyPass, 'customer']
+                }
+            ], 'write');
+            console.log('Default users seeded: manager/admin123, family/family123');
+        }
+    } catch (err) {
+        console.error('Failed to setup auth:', err);
+    }
+}
+
+setupAuth();
+
+// --- Auth Routes ---
+
+app.post('/api/login', async (req, res) => {
+    const { username, password } = req.body;
+    try {
+        const { rows } = await client.execute({
+            sql: 'SELECT * FROM users WHERE username = ?',
+            args: [username]
+        });
+
+        if (rows.length === 0) {
+            // @ts-ignore
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        const user = rows[0];
+        const valid = await bcrypt.compare(password, user.password_hash as string);
+
+        if (!valid) {
+            // @ts-ignore
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        const token = jwt.sign(
+            { id: user.id, username: user.username, role: user.role },
+            JWT_SECRET,
+            { expiresIn: '30d' }
+        );
+
+        res.json({ token, user: { id: user.id, username: user.username, role: user.role } });
+    } catch (err) {
+        res.status(500).json({ error: String(err) });
+    }
+});
+
+// Verify Token Endpoint (Optional, for client init)
+app.get('/api/auth/me', (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+        // @ts-ignore
+        return res.status(401).json({ error: 'No token provided' });
+    }
+    const token = authHeader.split(' ')[1];
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        res.json({ user: decoded }); // decoded contains {id, username, role, ...}
+    } catch (err) {
+        res.status(401).json({ error: 'Invalid token' });
+    }
+});
+
 
 // --- API Routes ---
 
@@ -43,12 +150,12 @@ app.get('/api/menu', async (req, res) => {
 
 // Add Item
 app.post('/api/menu', async (req, res) => {
-    const { name, description, image_url, ingredients, is_available } = req.body;
+    const { name, description, image_url, ingredients, is_available, category } = req.body;
     const id = crypto.randomUUID();
     try {
         await client.execute({
-            sql: 'INSERT INTO menu_items (id, name, description, image_url, ingredients, is_available) VALUES (?, ?, ?, ?, ?, ?)',
-            args: [id, name, description, image_url, JSON.stringify(ingredients), is_available ? 1 : 0]
+            sql: 'INSERT INTO menu_items (id, name, description, image_url, ingredients, is_available, category) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            args: [id, name, description, image_url, JSON.stringify(ingredients), is_available ? 1 : 0, category || 'smoothie']
         });
 
         // Fetch back to return
@@ -152,7 +259,7 @@ app.get('/api/order_items', async (req, res) => {
         const args = [];
         if (order_id) {
             sql += ' WHERE oi.order_id = ?';
-            args.push(order_id);
+            args.push(order_id as string);
         }
         const { rows } = await client.execute({ sql, args });
 
